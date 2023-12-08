@@ -1,6 +1,7 @@
 'use strict';
 
 import './popup.css';
+import { AI21 } from 'langchain/llms/ai21';
 
 (function () {
   // We will make use of Storage API to get and store `count` value
@@ -28,74 +29,23 @@ import './popup.css';
     },
   };
 
-  function setupCounter(initialValue = 0) {
-    document.getElementById('counter').innerHTML = initialValue;
-
-    document.getElementById('incrementBtn').addEventListener('click', () => {
-      updateCounter({
-        type: 'INCREMENT',
-      });
-    });
-
-    document.getElementById('decrementBtn').addEventListener('click', () => {
-      updateCounter({
-        type: 'DECREMENT',
-      });
+  function setupAppListeners() {
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      printModelResults();
     });
   }
 
-  function updateCounter({ type }) {
-    counterStorage.get((count) => {
-      let newCount;
-
-      if (type === 'INCREMENT') {
-        newCount = count + 1;
-      } else if (type === 'DECREMENT') {
-        newCount = count - 1;
-      } else {
-        newCount = count;
-      }
-
-      counterStorage.set(newCount, () => {
-        document.getElementById('counter').innerHTML = newCount;
-
-        // Communicate with content script of
-        // active tab by sending a message
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          const tab = tabs[0];
-
-          chrome.tabs.sendMessage(
-            tab.id,
-            {
-              type: 'COUNT',
-              payload: {
-                count: newCount,
-              },
-            },
-            (response) => {
-              console.log('Current count value passed to contentScript file');
-            }
-          );
-        });
-      });
+  async function printModelResults() {
+    document.getElementById('searchResult').innerHTML = 'Searching product';
+    const model = new AI21({
+      ai21ApiKey: 'WhI969toJeRihGIt9FQZBOG0gGdCnFxh',
     });
+    const input = document.getElementById('searchText').value;
+    const res = await model.call(`${input}`);
+    document.getElementById('searchResult').innerHTML = res;
   }
 
-  function restoreCounter() {
-    // Restore count value
-    counterStorage.get((count) => {
-      if (typeof count === 'undefined') {
-        // Set counter value as 0
-        counterStorage.set(0, () => {
-          setupCounter(0);
-        });
-      } else {
-        setupCounter(count);
-      }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', restoreCounter);
+  document.addEventListener('DOMContentLoaded', setupAppListeners);
 
   // Communicate with background file by sending a message
   chrome.runtime.sendMessage(
